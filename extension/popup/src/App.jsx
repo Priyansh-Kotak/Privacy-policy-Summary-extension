@@ -184,7 +184,7 @@ export default function App() {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/summarize', {
+      const response = await fetch('https://privacy-policy-summary-extension.onrender.com/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: pageText })

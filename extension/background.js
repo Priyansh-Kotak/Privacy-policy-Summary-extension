@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === 'summarize_text') {
-    const apiUrl = 'http://localhost:8080/summarize';
+    const apiUrl = 'https://privacy-policy-summary-extension.onrender.com/summarize';
     fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
