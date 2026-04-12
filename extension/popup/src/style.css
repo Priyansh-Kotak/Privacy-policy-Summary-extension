@@ -1,0 +1,120 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f7f9fc;
+  color: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 360px;
+}
+
+.app-shell {
+  padding: 16px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+
+header p {
+  margin: 0 0 16px;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 160px;
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  resize: vertical;
+  font-family: ui-monospace, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  color: #111827;
+}
+
+button {
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  margin-right: 10px;
+}
+
+button.secondary {
+  background: #9ca3af;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #b91c1c;
+  margin-top: 12px;
+}
+
+.source-url {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #6b7280;
+}
+
+.results-card {
+  display: grid;
+  gap: 14px;
+}
+
+.section-block {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.section-block h3 {
+  margin: 0 0 8px;
+}
+
+.section-block.red {
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
+}
+
+.section-block.yellow {
+  border-left: 4px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.section-block.green {
+  border-left: 4px solid #16a34a;
+  background: #ecfdf5;
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin-bottom: 6px;
+}
