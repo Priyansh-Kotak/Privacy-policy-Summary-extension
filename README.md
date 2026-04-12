@@ -1,40 +1,57 @@
 # Terms & Privacy Smart Summary
 
-This workspace contains a Chrome Extension and a Golang backend that work together to detect Terms & Conditions, Privacy Policy, and similar content on web pages, then summarize it with AI.
+This project contains a Chrome extension and a Go backend that work together to detect Terms of Service, Privacy Policies, Cookie Policies, and similar legal content on webpages, then summarize that content with AI.
 
-## Structure
+## Project Structure
 
 - `extension/`
-  - `manifest.json`: Chrome extension manifest for MV3.
-  - `content.js`: Content script to detect policy text and extract it from the page.
-  - `background.js`: Service worker that caches latest extraction and communicates with the popup.
-  - `popup/`: Vite + React app for the extension UI.
-
+  - `manifest.json`: Chrome extension manifest (MV3)
+  - `content.js`: content script that scans pages, detects policy links/sections, and renders inline badges
+  - `background.js`: service worker that caches extracted text per tab and calls the backend for inline summaries
+  - `popup/`: Vite + React popup UI
 - `backend-go/`
-  - `main.go`: Fiber backend that calls Hugging Face to summarize text.
-  - `go.mod`: Go module definition.
-  - `.env.example`: Example environment file for the Hugging Face API key.
+  - `main.go`: Fiber backend that calls OpenRouter and returns structured summary JSON
+  - `go.mod`: Go module definition
+  - `.env.example`: example environment file for the OpenRouter API key
 
-## How it works
+## How It Works
 
-1. `content.js` scans the page for keywords and policy text.
-2. `background.js` caches the extraction per tab.
-3. The popup sends a request to get the extracted text.
-4. The React popup sends text to the Go backend at `http://localhost:8080/summarize`.
-5. The backend calls Hugging Face inference and returns structured summary JSON.
+1. `content.js` scans the page for policy-related content such as terms, privacy, cookies, and legal notices.
+2. The content script sends extracted policy text to `background.js`, which caches it per browser tab.
+3. The extension popup reads the cached text and lets the user request a summary.
+4. Inline policy badges on the page can also request summaries through the background service worker.
+5. The backend sends the extracted text to OpenRouter and returns structured JSON with:
+   - `summary`
+   - `red_flags`
+   - `important_points`
+   - `green_flags`
 
-## Run the extension
+## Backend Endpoint
 
-### Backend
+The extension is currently configured to use the deployed Render backend:
+
+`https://privacy-policy-summary-extension.onrender.com/summarize`
+
+## Local Development
+
+### 1. Run the backend locally
 
 ```bash
 cd backend-go
 go run main.go
 ```
 
-Set `HUGGINGFACE_API_KEY` in your environment first.
+Required environment variable:
 
-### Popup (React)
+```bash
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+```
+
+Notes:
+- The backend uses `PORT` when provided by the hosting platform.
+- If `PORT` is not set, it defaults to `8080`.
+
+### 2. Build the popup
 
 ```bash
 cd extension/popup
@@ -42,10 +59,68 @@ npm install
 npm run build
 ```
 
-Then load `extension/` as an unpacked Chrome extension.
+### 3. Load the extension in Chrome
 
-## Deployment notes
+1. Open `chrome://extensions`
+2. Enable `Developer mode`
+3. Click `Load unpacked`
+4. Select the `extension/` folder
 
-- Update the backend URL in `extension/popup/src/App.jsx` when deploying.
-- Use a hosted service like Railway, Render, or Fly.io for the backend.
-- Build the popup before loading the extension.
+## Production Deployment
+
+### Backend
+
+The Go backend is ready for platforms like Render.
+
+Recommended Render settings:
+
+- Root directory: `backend-go`
+- Build command: `go build -o app .`
+- Start command: `./app`
+- Environment variable: `OPENROUTER_API_KEY`
+
+### Extension
+
+If you change the backend URL in the future, update both:
+
+- `extension/background.js`
+- `extension/popup/src/App.jsx`
+
+Then rebuild the popup:
+
+```bash
+cd extension/popup
+npm run build
+```
+
+## Packaging For Chrome Web Store
+
+Build the popup first, then create a ZIP from the `extension/` folder only:
+
+```bash
+cd extension
+zip -r ../policy-scanner-extension.zip . -x "popup/node_modules/*" "*.DS_Store"
+```
+
+Make sure the ZIP contains:
+
+- `manifest.json`
+- `background.js`
+- `content.js`
+- `icons/`
+- `popup/dist/`
+
+## Privacy And Data Flow
+
+- The extension analyzes webpage content to detect policy-related text.
+- Relevant policy text may be sent to the backend for summarization.
+- The backend uses OpenRouter to generate structured summaries.
+- The extension does not require user login.
+
+## Current Stack
+
+- Chrome Extension Manifest V3
+- React + Vite
+- Go + Fiber
+- OpenRouter (`gpt-4o-mini`)
+- Render for backend hosting
