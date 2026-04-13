@@ -10,9 +10,9 @@ This project contains a Chrome extension and a Go backend that work together to 
   - `background.js`: service worker that caches extracted text per tab and calls the backend for inline summaries
   - `popup/`: Vite + React popup UI
 - `backend-go/`
-  - `main.go`: Fiber backend that calls OpenRouter and returns structured summary JSON
+  - `main.go`: Fiber backend that calls the Gemini API and returns structured summary JSON
   - `go.mod`: Go module definition
-  - `.env.example`: example environment file for the OpenRouter API key
+  - `.env.example`: example environment file for the Gemini API key
 
 ## How It Works
 
@@ -20,7 +20,7 @@ This project contains a Chrome extension and a Go backend that work together to 
 2. The content script sends extracted policy text to `background.js`, which caches it per browser tab.
 3. The extension popup reads the cached text and lets the user request a summary.
 4. Inline policy badges on the page can also request summaries through the background service worker.
-5. The backend sends the extracted text to OpenRouter and returns structured JSON with:
+5. The backend sends the extracted text to Gemini and returns structured JSON with:
    - `summary`
    - `red_flags`
    - `important_points`
@@ -44,7 +44,7 @@ go run main.go
 Required environment variable:
 
 ```bash
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 Notes:
@@ -77,7 +77,7 @@ Recommended Render settings:
 - Root directory: `backend-go`
 - Build command: `go build -o app .`
 - Start command: `./app`
-- Environment variable: `OPENROUTER_API_KEY`
+- Environment variable: `GEMINI_API_KEY`
 
 ### Extension
 
@@ -114,7 +114,7 @@ Make sure the ZIP contains:
 
 - The extension analyzes webpage content to detect policy-related text.
 - Relevant policy text may be sent to the backend for summarization.
-- The backend uses OpenRouter to generate structured summaries.
+- The backend uses Gemini to generate structured summaries.
 - The extension does not require user login.
 
 ## Current Stack
@@ -122,5 +122,5 @@ Make sure the ZIP contains:
 - Chrome Extension Manifest V3
 - React + Vite
 - Go + Fiber
-- OpenRouter (`gpt-4o-mini`)
+- Gemini (`gemini-2.5-flash-lite`)
 - Render for backend hosting

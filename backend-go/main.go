@@ -27,9 +27,9 @@ type summaryResponse struct {
 }
 
 func main() {
-  apiKey := os.Getenv("OPENROUTER_API_KEY")
+  apiKey := os.Getenv("GEMINI_API_KEY")
   if apiKey == "" {
-    fmt.Println("Missing OPENROUTER_API_KEY environment variable")
+    fmt.Println("Missing GEMINI_API_KEY environment variable")
     os.Exit(1)
   }
 
@@ -55,7 +55,7 @@ func main() {
       return fiber.NewError(fiber.StatusBadRequest, "text field is required")
     }
 
-    response, err := callOpenRouter(apiKey, payload.Text)
+    response, err := callGemini(apiKey, payload.Text)
     if err != nil {
       return fiber.NewError(fiber.StatusInternalServerError, err.Error())
     }
@@ -72,15 +72,48 @@ func main() {
   log.Fatal(app.Listen(":" + port))
 }
 
-func callOpenRouter(apiKey, text string) (*summaryResponse, error) {
+func callGemini(apiKey, text string) (*summaryResponse, error) {
   prompt := buildPrompt(text)
   requestBody := map[string]interface{}{
-    "model": "gpt-4o-mini",
-    "messages": []map[string]string{
-      {"role": "user", "content": prompt},
+    "contents": []map[string]interface{}{
+      {
+        "parts": []map[string]string{
+          {"text": prompt},
+        },
+      },
     },
-    "max_tokens": 512,
-    "temperature": 0.5,
+    "generationConfig": map[string]interface{}{
+      "temperature":      0.3,
+      "responseMimeType": "application/json",
+      "responseSchema": map[string]interface{}{
+        "type": "OBJECT",
+        "properties": map[string]interface{}{
+          "summary": map[string]string{
+            "type": "STRING",
+          },
+          "red_flags": map[string]interface{}{
+            "type": "ARRAY",
+            "items": map[string]string{
+              "type": "STRING",
+            },
+          },
+          "important_points": map[string]interface{}{
+            "type": "ARRAY",
+            "items": map[string]string{
+              "type": "STRING",
+            },
+          },
+          "green_flags": map[string]interface{}{
+            "type": "ARRAY",
+            "items": map[string]string{
+              "type": "STRING",
+            },
+          },
+        },
+        "required": []string{"summary", "red_flags", "important_points", "green_flags"},
+        "propertyOrdering": []string{"summary", "red_flags", "important_points", "green_flags"},
+      },
+    },
   }
 
   bodyBytes, err := json.Marshal(requestBody)
@@ -88,15 +121,17 @@ func callOpenRouter(apiKey, text string) (*summaryResponse, error) {
     return nil, fmt.Errorf("failed to marshal request: %w", err)
   }
 
-  req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", bytes.NewReader(bodyBytes))
+  req, err := http.NewRequest(
+    "POST",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+    bytes.NewReader(bodyBytes),
+  )
   if err != nil {
-    return nil, fmt.Errorf("failed to create openrouter request: %w", err)
+    return nil, fmt.Errorf("failed to create Gemini request: %w", err)
   }
 
-  req.Header.Set("Authorization", "Bearer "+apiKey)
+  req.Header.Set("x-goog-api-key", apiKey)
   req.Header.Set("Content-Type", "application/json")
-  req.Header.Set("HTTP-Referer", "https://your-app.com")
-  req.Header.Set("X-Title", "Privacy Policy Summarizer")
 
   client := &http.Client{}
   resp, err := client.Do(req)
@@ -107,18 +142,17 @@ func callOpenRouter(apiKey, text string) (*summaryResponse, error) {
 
   if resp.StatusCode != http.StatusOK {
     bodyBytes, _ := io.ReadAll(resp.Body)
-    if resp.StatusCode == http.StatusTooManyRequests {
-      return nil, fmt.Errorf("OpenRouter rate limited the request. Please wait a few minutes or choose a different model.")
-    }
-    return nil, fmt.Errorf("openrouter returned %d: %s", resp.StatusCode, string(bodyBytes))
+    return nil, fmt.Errorf("gemini returned %d: %s", resp.StatusCode, string(bodyBytes))
   }
 
   var inferenceResult struct {
-    Choices []struct {
-      Message struct {
-        Content string `json:"content"`
-      } `json:"message"`
-    } `json:"choices"`
+    Candidates []struct {
+      Content struct {
+        Parts []struct {
+          Text string `json:"text"`
+        } `json:"parts"`
+      } `json:"content"`
+    } `json:"candidates"`
   }
 
   rawBody, err := io.ReadAll(resp.Body)
@@ -127,14 +161,14 @@ func callOpenRouter(apiKey, text string) (*summaryResponse, error) {
   }
 
   if err := json.Unmarshal(rawBody, &inferenceResult); err != nil {
-    return nil, fmt.Errorf("failed to parse OpenRouter response: %w", err)
+    return nil, fmt.Errorf("failed to parse Gemini response: %w", err)
   }
 
-  if len(inferenceResult.Choices) == 0 {
-    return nil, fmt.Errorf("empty inference response")
+  if len(inferenceResult.Candidates) == 0 || len(inferenceResult.Candidates[0].Content.Parts) == 0 {
+    return nil, fmt.Errorf("empty Gemini response")
   }
 
-  jsonText := inferenceResult.Choices[0].Message.Content
+  jsonText := inferenceResult.Candidates[0].Content.Parts[0].Text
   parsed, err := parseStructuredJSON(jsonText)
   if err != nil {
     return nil, fmt.Errorf("failed to parse generated JSON: %w", err)
